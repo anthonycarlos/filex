@@ -35,7 +35,7 @@ Usage: #{EXECUTABLE_NAME} [options] substitute_command
   opts.on("-d",
           "--dry-run",
           'Dry run or do not actually rename files.') do
-    options[:'dry-run'] = true
+    options[:dryrun] = true
   end
   opts.on("-r",
           "--recursive",
@@ -67,11 +67,16 @@ rescue OptionParser::InvalidArgument => ex
   exit 1
 end
 
-puts SubstitutionCommand.parse(substitution_command).inspect
+if options[:dryrun]
+  file_utils_opts = { :noop => true }
+else
+  file_utils_opts = {}
+end
+# puts SubstitutionCommand.parse(substitution_command).inspect
 
 dir = FileUtils.pwd
 
 files = NonhiddenFiles.get(dir)
 files.each do |file|
-  FileUtil.move_file(file, StringUtil.gsub(file, *SubstitutionCommand.parse(substitution_command)))
+  FileUtil.move_file(file, StringUtil.gsub(file, *SubstitutionCommand.parse(substitution_command)), file_utils_opts)
 end
