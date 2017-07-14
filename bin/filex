@@ -1,0 +1,77 @@
+#!/usr/bin/env ruby
+require 'optparse'
+require 'yaml'
+$LOAD_PATH << File.join(File.dirname(__FILE__), '..', 'lib')
+require 'nonhidden_files'
+require 'file_util'
+require 'string_util'
+require 'substitution_command'
+require 'fileutils'
+
+EXECUTABLE_NAME = File.basename($PROGRAM_NAME)
+CONFIG_FILE = File.join(ENV['HOME'], ".#{EXECUTABLE_NAME}.rc.yaml")
+
+options = {
+}
+
+if File.exists? CONFIG_FILE
+  options_config = YAML.load_file(CONFIG_FILE)
+  options.merge!(options_config)
+else
+  File.open(CONFIG_FILE,'w') { |file| YAML::dump(options,file) }
+  STDERR.puts "Initialized configuration file in #{CONFIG_FILE}"
+end
+
+option_parser = OptionParser.new do |opts|
+  opts.banner = "Usage: #{EXECUTABLE_NAME} [options] substitute_command"
+
+  opts.banner= <<-EOS
+Use an ex-like substitute command to rename files.
+
+Usage: #{EXECUTABLE_NAME} [options] substitute_command
+
+  EOS
+
+  opts.on("-d",
+          "--dry-run",
+          'Dry run or do not actually rename files.') do
+    options[:'dry-run'] = true
+  end
+  opts.on("-r",
+          "--recursive",
+          "Recursively process folders.") do
+    options[:recursive] = true
+  end
+
+  opts.on("-h",
+          "--help",
+          "Show complete help on command-line options.") do
+    puts opts.to_s
+    exit 0
+  end
+
+end
+
+begin
+  option_parser.parse!
+  if ARGV.empty?
+    puts "Error: You must supply a substitute_command."
+    puts
+    puts option_parser.help
+    exit 2
+  end
+  substitution_command = ARGV[0]
+rescue OptionParser::InvalidArgument => ex
+  STDERR.puts ex.message
+  STDERR.puts option_parser
+  exit 1
+end
+
+puts SubstitutionCommand.parse(substitution_command).inspect
+
+dir = FileUtils.pwd
+
+files = NonhiddenFiles.get(dir)
+files.each do |file|
+  FileUtil.move_file(file, StringUtil.gsub(file, *SubstitutionCommand.parse(substitution_command)))
+end
