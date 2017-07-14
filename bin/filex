@@ -67,12 +67,7 @@ rescue OptionParser::InvalidArgument => ex
   exit 1
 end
 
-if options[:dryrun]
-  file_utils_opts = { :noop => true }
-else
-  file_utils_opts = {}
-end
-# puts SubstitutionCommand.parse(substitution_command).inspect
+file_utils_opts = options[:dryrun] ? { :noop => true } : {}
 
 dir = FileUtils.pwd
 
