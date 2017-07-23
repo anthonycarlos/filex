@@ -71,7 +71,18 @@ file_utils_opts = options[:dryrun] ? { :noop => true } : {}
 
 dir = FileUtils.pwd
 
-files = NonhiddenFiles.get(dir)
-files.each do |file|
-  FileUtil.move_file(file, StringUtil.gsub(file, *SubstitutionCommand.parse(substitution_command)), file_utils_opts)
+if options[:recursive]
+  file_hashes = NonhiddenFiles.recursive_get(dir)
+else
+  file_hashes = [] << NonhiddenFiles.get(dir)
+end
+puts "file_hashes: #{file_hashes.inspect}"
+file_hashes.each do |file_hash|
+  puts "file_hash: #{file_hash.inspect}"
+  dirname = file_hash.keys.first # Assume only one key/value pair in a file hash.
+  FileUtils.cd(dirname)
+  files = file_hash.values.first
+  files.each do |file|
+    FileUtil.move_file!(file, StringUtil.gsub(file, *SubstitutionCommand.parse(substitution_command)), file_utils_opts)
+  end
 end
